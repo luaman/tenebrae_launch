@@ -288,6 +288,9 @@ begin
    if CheckBox5.Checked then
       s := s+' +gl_compress_textures 1 ';
 
+   if CheckBox6.Checked then
+      s := s+' +sh_glares 1 ';
+
    s := s+'-sndspeed '+IntToStr(getSampleRate)+' ';
    s := s+'-sndbits '+IntToStr(getSampleBits)+' ';
 
@@ -318,6 +321,7 @@ begin
      CheckBox2.Checked := IniFile.ReadBool('RESOLUTION','Windowed',false);
 
      Edit1.Text := IniFile.ReadString('LIGHTS','Radiusscale','0.5');
+     CheckBox6.Checked := IniFile.ReadBool('LIGHTS','Glares',false);
 
      Edit2.Text := IniFile.ReadString('MISC','Extra','');
 
@@ -348,6 +352,7 @@ begin
      IniFile.WriteBool('RESOLUTION','Windowed',CheckBox2.Checked);
 
      IniFile.WriteString('LIGHTS','Radiusscale',Edit1.Text);
+     IniFile.WriteBool('LIGHTS','Glares',CheckBox6.Checked);
 
      IniFile.WriteString('MISC','Extra',Edit2.Text);
 
