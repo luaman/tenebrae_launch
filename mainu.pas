@@ -51,6 +51,15 @@ type
     ComboBox3: TComboBox;
     Label2: TLabel;
     Label4: TLabel;
+    ChkCaustics: TCheckBox;
+    ChkWaterShader: TCheckBox;
+    Button3: TButton;
+    ChkTLerp: TCheckBox;
+    ChkViewModel: TCheckBox;
+    GrbShadows: TGroupBox;
+    ChkPlayerShadow: TCheckBox;
+    ChkEntityShadows: TCheckBox;
+    ChkWorldShadows: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
@@ -59,6 +68,7 @@ type
     procedure ComboBox2Change(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure PaintBox1Paint(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -95,7 +105,6 @@ var
 function DisplayModeInfo(index : integer) : string;
 var
    amode : ^tdevMode;
-   succes : boolean;
    i  : integer;
 begin
    if index >= 255 then
@@ -179,40 +188,36 @@ end;
 
 function TForm1.GetMirIndex : integer;
 begin
-   if RadioButton1.Checked then
-   begin
-      result := 0;
-      exit;
-   end;
+   //cleaner code and shutsup compiler warnings -AdamJ
    if RadioButton2.Checked then
    begin
       result := 1;
       exit;
-   end;
-   if RadioButton3.Checked then
+   end
+   else if RadioButton3.Checked then
    begin
       result := 2;
       exit;
-   end;
+   end
+   else
+      result := 0;
 end;
 
 function TForm1.GetTexIndex : integer;
 begin
-   if RadioButton4.Checked then
-   begin
-      result := 0;
-      exit;
-   end;
+   //cleaner code and shutsup compiler warnings -AdamJ
    if RadioButton5.Checked then
    begin
       result := 1;
       exit;
-   end;
-   if RadioButton6.Checked then
+   end
+   else if RadioButton6.Checked then
    begin
       result := 2;
       exit;
-   end;
+   end
+   else
+    result := 0;
 end;
 
 function TForm1.GetForceWaterIndex : integer;
@@ -285,11 +290,17 @@ begin
    if CheckBox4.Checked then
       s := s+' -anisotropic ';
 
-   if CheckBox5.Checked then
-      s := s+' +gl_compress_textures 1 ';
-
-   if CheckBox6.Checked then
-      s := s+' +sh_glares 1 ';
+   {You need to do this so when the option is unchecked it is
+   properly disabled instead of using default or .cfg setting -Adam}
+   s := s+ ' +gl_compress_textures '+booltostr(CheckBox5.checked)+' ';
+   s := s+' +sh_glares '+booltostr(CheckBox6.Checked)+' ';
+   s := s+' +gl_caustics '+booltostr(ChkCaustics.Checked)+' ';
+   s := s+' +gl_watershader '+booltostr(ChkWaterShader.Checked)+' ';
+   s := s+' +r_drawviewmodel '+booltostr(ChkViewModel.Checked)+' ';
+   s := s+' +gl_transformlerp '+booltostr(ChkTLerp.Checked)+' ';
+   s := s+' +sh_playershadow '+booltostr(ChkPlayerShadow.Checked)+' ';
+   s := s+' +sh_entityshadows '+booltostr(ChkEntityShadows.Checked)+' ';
+   s := s+' +sh_worldshadows '+booltostr(ChkWorldShadows.Checked)+' ';
 
    s := s+'-sndspeed '+IntToStr(getSampleRate)+' ';
    s := s+'-sndbits '+IntToStr(getSampleBits)+' ';
@@ -316,6 +327,8 @@ begin
      CheckBox3.Checked := IniFile.ReadBool('TEXTURE','TriLinear',false);
      CheckBox4.Checked := IniFile.ReadBool('TEXTURE','Anisotropic',false);
      CheckBox5.Checked := IniFile.ReadBool('TEXTURE','Compression',false);
+     ChkCaustics.Checked := IniFile.ReadBool('TEXTURE','Caustics',true);
+     ChkWaterShader.Checked := IniFile.ReadBool('TEXTURE','WaterShader',true);
 
      ComboBox1.ItemIndex := IniFile.ReadInteger('RESOLUTION','Mode',0);
      CheckBox2.Checked := IniFile.ReadBool('RESOLUTION','Windowed',false);
@@ -323,6 +336,12 @@ begin
      Edit1.Text := IniFile.ReadString('LIGHTS','Radiusscale','0.5');
      CheckBox6.Checked := IniFile.ReadBool('LIGHTS','Glares',false);
 
+     ChkPlayerShadow.Checked := IniFile.ReadBool('SHADOWS','Player',true);
+     ChkEntityShadows.Checked := IniFile.ReadBool('SHADOWS','Entity',true);
+     ChkWorldShadows.Checked := IniFile.ReadBool('SHADOWS','World',true);
+
+     ChkViewModel.Checked := IniFile.ReadBool('MISC','DrawViewModel',true);
+     ChkTLerp.Checked := IniFile.ReadBool('MISC','TransformInterpolation',false);
      Edit2.Text := IniFile.ReadString('MISC','Extra','');
 
      ComboBox3.ItemIndex := IniFile.ReadInteger('SOUND','Hz',1);
@@ -347,6 +366,8 @@ begin
      IniFile.WriteBool('TEXTURE','TriLinear',CheckBox3.Checked);
      IniFile.WriteBool('TEXTURE','Anisotropic',CheckBox4.Checked);
      IniFile.WriteBool('TEXTURE','Compression',CheckBox5.Checked);
+     IniFile.WriteBool('TEXTURE','Caustics',ChkCaustics.Checked);
+     IniFile.WriteBool('TEXTURE','WaterShader',ChkWaterShader.Checked);
 
      IniFile.WriteInteger('RESOLUTION','Mode',ComboBox1.ItemIndex);
      IniFile.WriteBool('RESOLUTION','Windowed',CheckBox2.Checked);
@@ -354,6 +375,12 @@ begin
      IniFile.WriteString('LIGHTS','Radiusscale',Edit1.Text);
      IniFile.WriteBool('LIGHTS','Glares',CheckBox6.Checked);
 
+     IniFile.WriteBool('SHADOWS','Player',ChkPlayerShadow.Checked);
+     IniFile.WriteBool('SHADOWS','Entity',ChkEntityShadows.Checked);
+     IniFile.WriteBool('SHADOWS','World',ChkWorldShadows.Checked);
+
+     IniFile.WriteBool('MISC','DrawViewModel',ChkViewModel.Checked);
+     IniFile.WriteBool('MISC','TransformInterpolation',ChkTLerp.Checked);
      IniFile.WriteString('MISC','Extra',Edit2.Text);
 
      IniFile.WriteInteger('SOUND','Hz',ComboBox3.ItemIndex);
@@ -473,6 +500,30 @@ begin
      rect.Bottom := Paintbox1.Height;
      Paintbox1.Canvas.Font.Color := clWhite;
      DrawText(Paintbox1.Canvas.Handle,PChar(CreditsList.text),length(CreditsList.text),rect,DT_CENTER);
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+begin
+  //For those to lazy to do it manaually :P -AdamJ
+  if MessageBox(0,PChar('Warning: This will reset all your current settings.'+chr(13)+'Continue?'),PChar('Warning'), +mb_YesNo +mb_ICONWARNING) <> 6 then
+    Exit;
+  Edit1.Text:='0.4';
+  Edit2.Text:='';
+  CheckBox1.Checked:=false;
+  CheckBox2.Checked:=false;
+  CheckBox3.Checked:=false;
+  CheckBox4.Checked:=false;
+  CheckBox5.Checked:=false;
+  CheckBox6.Checked:=false;
+  ChkCaustics.Checked:=true;
+  ChkWaterShader.Checked:=true;
+  ChkViewModel.Checked:=true;
+  ChkTLerp.Checked:=false;
+  ChkPlayerShadow.Checked:=true;
+  ChkEntityShadows.Checked:=true;
+  ChkWorldShadows.Checked:=true;
+  RadioButton2.Checked:=true;
+  RadioButton4.Checked:=true;
 end;
 
 end.
