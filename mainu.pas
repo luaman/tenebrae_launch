@@ -38,8 +38,6 @@ type
     RadioButton6: TRadioButton;
     RadioButton4: TRadioButton;
     Other: TGroupBox;
-    CheckBox4: TCheckBox;
-    CheckBox5: TCheckBox;
     CheckBox3: TCheckBox;
     CheckBox2: TCheckBox;
     ComboBox1: TComboBox;
@@ -60,6 +58,15 @@ type
     ChkPlayerShadow: TCheckBox;
     ChkEntityShadows: TCheckBox;
     ChkWorldShadows: TCheckBox;
+    CmbAniso: TComboBox;
+    Label5: TLabel;
+    GroupBox6: TGroupBox;
+    CheckBox5: TCheckBox;
+    ChkBump: TCheckBox;
+    ChkGloss: TCheckBox;
+    ChkSound: TCheckBox;
+    ChkCDAudio: TCheckBox;
+    ChkBumpmaps: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
@@ -81,13 +88,14 @@ type
     Function GetMirIndex : integer;
     Function GetTexIndex : integer;
     Function GetFilter : string;
-    Function GetAnisoIndex : integer;
     Function GetForceWaterIndex : integer;
+    Function GetCompressionIndex : integer;
     Function GetSampleRate : integer;
     Function GetSampleBits : integer;
     Procedure LoadConfig(Ident : String);
     Procedure SaveConfig(Ident : String);
     Function FindConfigs : integer;
+    Function GetAnisotropy : integer;
   end;
 
 var
@@ -231,20 +239,22 @@ begin
    exit;
 end;
 
+function TForm1.GetCompressionIndex : integer;
+var lvl:integer;
+begin
+   lvl:=0;
+   if CheckBox5.Checked then lvl:=lvl+1;
+   if ChkBump.Checked then lvl:=lvl+2;
+   if ChkGloss.Checked then lvl:=lvl+4;
+   GetCompressionIndex:=lvl;
+end;
+
 function TForm1.GetFilter : string;
 begin
      if CheckBox3.Checked then
         result := 'GL_LINEAR_MIPMAP_LINEAR'
      else
         result := 'GL_LINEAR_MIPMAP_NEAREST';
-end;
-
-function TForm1.GetAnisoIndex : integer;
-begin
-     if CheckBox4.Checked then
-        result := 1
-     else
-         result := 0;
 end;
 
 function TForm1.GetSampleRate : integer;
@@ -254,6 +264,17 @@ begin
           0: result := 11025;
           1: result := 22050;
           2: result := 44100;
+     end;
+end;
+
+function TForm1.GetAnisotropy : integer;
+begin
+     result := 1;
+     case CmbAniso.ItemIndex of
+          0: result := 1;
+          1: result := 2;
+          2: result := 4;
+          3: result := 8;
      end;
 end;
 
@@ -286,13 +307,15 @@ begin
       s := s+' -window';
    //texture filtering
    s := s+' +gl_texturemode '+GetFilter+' ';
+   s := s+' -anisotropy '+inttostr(GetAnisotropy)+' ';
 
-   if CheckBox4.Checked then
-      s := s+' -anisotropic ';
+   if ChkSound.checked=false then s := s+' -nosound ';
+   if ChkCDAudio.checked=false then s := s+' -nocdaudio ';
+   if ChkBumpmaps.checked=false then s := s+' -nobumpmaps ';
 
    {You need to do this so when the option is unchecked it is
    properly disabled instead of using default or .cfg setting -Adam}
-   s := s+ ' +gl_compress_textures '+booltostr(CheckBox5.checked)+' ';
+   s := s+ ' +gl_compress_textures '+inttostr(GetCompressionIndex)+' ';
    s := s+' +sh_glares '+booltostr(CheckBox6.Checked)+' ';
    s := s+' +gl_caustics '+booltostr(ChkCaustics.Checked)+' ';
    s := s+' +gl_watershader '+booltostr(ChkWaterShader.Checked)+' ';
@@ -325,10 +348,13 @@ begin
      RadioButton5.Checked := IniFile.ReadBool('TEXTURE','HalfSize',false);
      RadioButton6.Checked := IniFile.ReadBool('TEXTURE','QuadSize',true);
      CheckBox3.Checked := IniFile.ReadBool('TEXTURE','TriLinear',false);
-     CheckBox4.Checked := IniFile.ReadBool('TEXTURE','Anisotropic',false);
+     CmbAniso.ItemIndex := IniFile.ReadInteger('TEXTURE','Anisotropy',0);
      CheckBox5.Checked := IniFile.ReadBool('TEXTURE','Compression',false);
+     ChkBump.Checked := IniFile.ReadBool('TEXTURE','CompressBump',false);
+     ChkGloss.Checked := IniFile.ReadBool('TEXTURE','CompressGloss',false);
      ChkCaustics.Checked := IniFile.ReadBool('TEXTURE','Caustics',true);
      ChkWaterShader.Checked := IniFile.ReadBool('TEXTURE','WaterShader',true);
+     ChkBumpmaps.Checked := IniFile.ReadBool('TEXTURE','Bumpmaps',true);
 
      ComboBox1.ItemIndex := IniFile.ReadInteger('RESOLUTION','Mode',0);
      CheckBox2.Checked := IniFile.ReadBool('RESOLUTION','Windowed',false);
@@ -346,6 +372,8 @@ begin
 
      ComboBox3.ItemIndex := IniFile.ReadInteger('SOUND','Hz',1);
      ComboBox4.ItemIndex := IniFile.ReadInteger('SOUND','Bits',1);
+     ChkSound.Checked := IniFile.ReadBool('SOUND','SoundEnabled',true);
+     ChkCDAudio.Checked := IniFile.ReadBool('SOUND','CDAudio',true);
 
      IniFile.Free;
 end;
@@ -364,10 +392,13 @@ begin
      IniFile.WriteBool('TEXTURE','HalfSize',RadioButton5.Checked);
      IniFile.WriteBool('TEXTURE','QuadSize',RadioButton6.Checked);
      IniFile.WriteBool('TEXTURE','TriLinear',CheckBox3.Checked);
-     IniFile.WriteBool('TEXTURE','Anisotropic',CheckBox4.Checked);
+     IniFile.WriteInteger('TEXTURE','Anisotropy',CmbAniso.ItemIndex);
      IniFile.WriteBool('TEXTURE','Compression',CheckBox5.Checked);
+     IniFile.WriteBool('TEXTURE','CompressBump',ChkBump.Checked);
+     IniFile.WriteBool('TEXTURE','CompressGloss',ChkGloss.Checked);
      IniFile.WriteBool('TEXTURE','Caustics',ChkCaustics.Checked);
      IniFile.WriteBool('TEXTURE','WaterShader',ChkWaterShader.Checked);
+     IniFile.WriteBool('TEXTURE','Bumpmaps',ChkBumpmaps.Checked);
 
      IniFile.WriteInteger('RESOLUTION','Mode',ComboBox1.ItemIndex);
      IniFile.WriteBool('RESOLUTION','Windowed',CheckBox2.Checked);
@@ -385,6 +416,8 @@ begin
 
      IniFile.WriteInteger('SOUND','Hz',ComboBox3.ItemIndex);
      IniFile.WriteInteger('SOUND','Bits',ComboBox4.ItemIndex);
+     IniFile.WriteBool('SOUND','SoundEnabled',ChkSound.Checked);
+     IniFile.WriteBool('SOUND','CDAudio',ChkCDAudio.Checked);
 
      Inifile.Free;
 end;
@@ -512,7 +545,7 @@ begin
   CheckBox1.Checked:=false;
   CheckBox2.Checked:=false;
   CheckBox3.Checked:=false;
-  CheckBox4.Checked:=false;
+  CmbAniso.ItemIndex:=0;
   CheckBox5.Checked:=false;
   CheckBox6.Checked:=false;
   ChkCaustics.Checked:=true;
@@ -524,6 +557,14 @@ begin
   ChkWorldShadows.Checked:=true;
   RadioButton2.Checked:=true;
   RadioButton4.Checked:=true;
+  ComboBox3.ItemIndex:=0;
+  ComboBox4.ItemIndex:=1;
+  if ComboBox1.Items[6]='800 x 600 x 32' then ComboBox1.ItemIndex:=6;
+  ChkBump.Checked:=false;
+  ChkGloss.Checked:=false;
+  ChkSound.Checked:=true;
+  ChkCDAudio.Checked:=true;
+  ChkBumpmaps.Checked:=true;
 end;
 
 end.
