@@ -26,7 +26,7 @@ implementation
 
 procedure TForm2.FormCreate(Sender: TObject);
 begin
-     RichEdit1.Lines.LoadFromFile(ExtractFileDir(ParamStr(0))+'\tenebrae\credits.rtf');
+//     RichEdit1.Lines.LoadFromFile(ExtractFileDir(ParamStr(0))+'\tenebrae\credits.rtf');
 end;
 
 end.

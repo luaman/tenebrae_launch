@@ -4,38 +4,53 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Buttons, IniFiles;
+  StdCtrls, Buttons, IniFiles, ComCtrls, ExtCtrls;
 
 type
   TForm1 = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
-    GroupBox1: TGroupBox;
-    GroupBox2: TGroupBox;
-    RadioButton1: TRadioButton;
-    RadioButton2: TRadioButton;
-    RadioButton3: TRadioButton;
-    CheckBox1: TCheckBox;
-    RadioButton4: TRadioButton;
-    RadioButton5: TRadioButton;
-    RadioButton6: TRadioButton;
-    GroupBox3: TGroupBox;
-    Edit1: TEdit;
-    Label1: TLabel;
-    Memo1: TMemo;
-    Resolution: TGroupBox;
-    ComboBox1: TComboBox;
-    CheckBox2: TCheckBox;
-    GroupBox4: TGroupBox;
-    Edit2: TEdit;
-    CheckBox3: TCheckBox;
-    CheckBox4: TCheckBox;
-    Label2: TLabel;
-    BitBtn3: TBitBtn;
     ComboBox2: TComboBox;
     Label3: TLabel;
     Button1: TButton;
     Button2: TButton;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    TabSheet3: TTabSheet;
+    TabSheet4: TTabSheet;
+    GroupBox1: TGroupBox;
+    RadioButton1: TRadioButton;
+    RadioButton2: TRadioButton;
+    RadioButton3: TRadioButton;
+    CheckBox1: TCheckBox;
+    GroupBox5: TGroupBox;
+    CheckBox6: TCheckBox;
+    Resolution: TGroupBox;
+    GroupBox4: TGroupBox;
+    Edit2: TEdit;
+    GroupBox3: TGroupBox;
+    Label1: TLabel;
+    Edit1: TEdit;
+    Memo1: TMemo;
+    GroupBox2: TGroupBox;
+    RadioButton5: TRadioButton;
+    RadioButton6: TRadioButton;
+    RadioButton4: TRadioButton;
+    Other: TGroupBox;
+    CheckBox4: TCheckBox;
+    CheckBox5: TCheckBox;
+    CheckBox3: TCheckBox;
+    CheckBox2: TCheckBox;
+    ComboBox1: TComboBox;
+    TabSheet5: TTabSheet;
+    PaintBox1: TPaintBox;
+    Image1: TImage;
+    Panel1: TPanel;
+    ComboBox4: TComboBox;
+    ComboBox3: TComboBox;
+    Label2: TLabel;
+    Label4: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
@@ -43,11 +58,13 @@ type
     procedure Button1Click(Sender: TObject);
     procedure ComboBox2Change(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure PaintBox1Paint(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
     CurrentConfig : String;
+    CreditsList : TStringList;
 
     Procedure CreateModeList;
     Function AssembleParamString : string;
@@ -56,6 +73,8 @@ type
     Function GetFilter : string;
     Function GetAnisoIndex : integer;
     Function GetForceWaterIndex : integer;
+    Function GetSampleRate : integer;
+    Function GetSampleBits : integer;
     Procedure LoadConfig(Ident : String);
     Procedure SaveConfig(Ident : String);
     Function FindConfigs : integer;
@@ -151,6 +170,11 @@ begin
    ComboBox2.ItemIndex := 0;
    CurrentConfig := ComboBox2.Items.Strings[ComboBox2.ItemIndex];
    LoadConfig(CurrentConfig);
+
+   CreditsList := TStringList.Create;
+   CreditsList.LoadFromFile('credits.txt');
+
+   PageControl1.ActivePage := TabSheet5;
 end;
 
 function TForm1.GetMirIndex : integer;
@@ -218,6 +242,25 @@ begin
          result := 0;
 end;
 
+function TForm1.GetSampleRate : integer;
+begin
+     result := 22050;
+     case ComboBox3.ItemIndex of
+          0: result := 11025;
+          1: result := 22050;
+          2: result := 44100;
+     end;
+end;
+
+function TForm1.GetSampleBits : integer;
+begin
+     result := 16;
+     case ComboBox4.ItemIndex of
+          0: result := 8;
+          1: result := 16;
+     end;
+end;
+
 function TForm1.AssembleParamString : string;
 var
    s : string;
@@ -241,6 +284,13 @@ begin
 
    if CheckBox4.Checked then
       s := s+' -anisotropic ';
+
+   if CheckBox5.Checked then
+      s := s+' +gl_compress_textures 1 ';
+
+   s := s+'-sndspeed '+IntToStr(getSampleRate)+' ';
+   s := s+'-sndbits '+IntToStr(getSampleBits)+' ';
+
    //aditional params
    s := s+' '+edit2.text;
 
@@ -262,6 +312,7 @@ begin
      RadioButton6.Checked := IniFile.ReadBool('TEXTURE','QuadSize',true);
      CheckBox3.Checked := IniFile.ReadBool('TEXTURE','TriLinear',false);
      CheckBox4.Checked := IniFile.ReadBool('TEXTURE','Anisotropic',false);
+     CheckBox5.Checked := IniFile.ReadBool('TEXTURE','Compression',false);
 
      ComboBox1.ItemIndex := IniFile.ReadInteger('RESOLUTION','Mode',0);
      CheckBox2.Checked := IniFile.ReadBool('RESOLUTION','Windowed',false);
@@ -269,6 +320,9 @@ begin
      Edit1.Text := IniFile.ReadString('LIGHTS','Radiusscale','0.5');
 
      Edit2.Text := IniFile.ReadString('MISC','Extra','');
+
+     ComboBox3.ItemIndex := IniFile.ReadInteger('SOUND','Hz',1);
+     ComboBox4.ItemIndex := IniFile.ReadInteger('SOUND','Bits',1);
 
      IniFile.Free;
 end;
@@ -288,6 +342,7 @@ begin
      IniFile.WriteBool('TEXTURE','QuadSize',RadioButton6.Checked);
      IniFile.WriteBool('TEXTURE','TriLinear',CheckBox3.Checked);
      IniFile.WriteBool('TEXTURE','Anisotropic',CheckBox4.Checked);
+     IniFile.WriteBool('TEXTURE','Compression',CheckBox5.Checked);
 
      IniFile.WriteInteger('RESOLUTION','Mode',ComboBox1.ItemIndex);
      IniFile.WriteBool('RESOLUTION','Windowed',CheckBox2.Checked);
@@ -295,6 +350,9 @@ begin
      IniFile.WriteString('LIGHTS','Radiusscale',Edit1.Text);
 
      IniFile.WriteString('MISC','Extra',Edit2.Text);
+
+     IniFile.WriteInteger('SOUND','Hz',ComboBox3.ItemIndex);
+     IniFile.WriteInteger('SOUND','Bits',ComboBox4.ItemIndex);
 
      Inifile.Free;
 end;
@@ -388,6 +446,28 @@ begin
      ComboBox2.ItemIndex := 0;
      CurrentConfig := ComboBox2.Items.Strings[ComboBox2.ItemIndex];
      LoadConfig(CurrentConfig);
+end;
+
+procedure TForm1.PaintBox1Paint(Sender: TObject);
+var
+   rect: TRect;
+begin
+     Paintbox1.Canvas.Brush.Style := bsClear;
+
+     //simple drop shadow
+     rect.Left := 2;
+     rect.Right := Paintbox1.Width+2;
+     rect.Top := 1;
+     rect.Bottom := Paintbox1.Height+1;
+     Paintbox1.Canvas.Font.Color := clBlack;
+     DrawText(Paintbox1.Canvas.Handle,PChar(CreditsList.text),length(CreditsList.text),rect,DT_CENTER);
+
+     rect.Left := 0;
+     rect.Right := Paintbox1.Width;
+     rect.Top := 0;
+     rect.Bottom := Paintbox1.Height;
+     Paintbox1.Canvas.Font.Color := clWhite;
+     DrawText(Paintbox1.Canvas.Handle,PChar(CreditsList.text),length(CreditsList.text),rect,DT_CENTER);
 end;
 
 end.
